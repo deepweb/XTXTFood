@@ -1,0 +1,389 @@
+Select * from FutureGroup_5500_WSSI_AppDB.dbo.[M_PL Initial Allocation U Export AW M]
+Select * from FutureGroup_5500_WSSI_SYSTEM.dbo.PSY_EVENT_LOG where [USER_NAME] = 'FUTUREGROUP\puser3'
+order by UTC_DATETIME desc
+
+Select distinct CreateDatetime from FutureGroup_5500_WSSI_AppDB.dbo.[M_PL Option Assign AW M]
+order by CreateDatetime desc
+
+Select o.[Brand Owner], bp.Planner, o.[Plan Class Caption], o.Label as 'Option', s.Label as 'Store', rp.Value as 'Range', sum(ss.Value) as 'Min Stock' 
+from FutureGroup_6600_REP_AppDB.dbo.[M_Range Plan] rp --option, store
+inner join FutureGroup_6600_REP_AppDB.dbo.D_SKU sku on sku.[Option] = rp.D_Option_MemberId
+inner join FutureGroup_6600_REP_AppDB.dbo.[M_Standard Stock] ss on ss.D_SKU_MemberId = sku.MemberId -- SKU, Store
+inner join FutureGroup_6600_REP_AppDB.dbo.D_Option o on o.MemberId = sku.[Option]
+left join FutureGroup_6600_REP_AppDB.dbo.D_Store s on s.MemberId = rp.D_Store_MemberId and s.MemberId = ss.D_Store_MemberId
+inner join FutureGroup_5500_ARCA.dbo.AEX_BPC_Planner bp on bp.BPC = o.[Plan Class Caption]
+group by o.[Brand Owner], bp.Planner, o.[Plan Class Caption], o.Label, s.Label, rp.Value
+
+
+--- This is a test change - 1
+
+
+
+Select sku.[Option Desc],  rp.Value as 'Range', sum(ss.Value) as 'Min Stock' 
+from FutureGroup_6600_REP_AppDB.dbo.[M_Range Plan] rp --option, store
+inner join FutureGroup_6600_REP_AppDB.dbo.D_SKU sku on sku.[Option] = rp.D_Option_MemberId
+left join FutureGroup_6600_REP_AppDB.dbo.[M_Standard Stock] ss on ss.D_SKU_MemberId = sku.MemberId -- SKU, Store
+group by SKU.[Option Desc], rp.Value
+
+
+
+Select sku.label, sku.[Option], rp.Value from FutureGroup_6600_REP_AppDB.dbo.[M_Range Plan] rp --option, store
+inner join FutureGroup_6600_REP_AppDB.dbo.D_SKU sku on sku.[Option] = rp.D_Option_MemberId
+
+Select o.[Brand Owner] as 'Owner', bpcp.Planner as 'Planner', o.Label as 'Option', s.Label as 'Store', 
+rr.Value as 'Range', Mins.[Min Stock] as 'Min Stock' 
+from FutureGroup_6600_REP_AppDB.dbo.[M_Range Plan] rr
+inner join FutureGroup_6600_REP_AppDB.dbo.D_SKU sku on sku.[Option] = rr.D_Option_MemberId
+inner join FutureGroup_6600_REP_AppDB.dbo.D_Store s on s.MemberId = rr.D_Store_MemberId
+inner join FutureGroup_6600_REP_AppDB.dbo.D_Option o on o.MemberId = rr.D_Option_MemberId
+left join (Select sku.MemberId as 'SKU', sku.[Option] as 'Option',st.MemberId as 'Store', sku.[Class Desc] as 'Class', sum(ss.Value)as 'Min Stock' from FutureGroup_6600_REP_AppDB.dbo.[M_Standard Stock] ss
+inner join FutureGroup_6600_REP_AppDB.dbo.D_SKU sku on sku.MemberId = ss.D_SKU_MemberId
+inner join FutureGroup_6600_REP_AppDB.dbo.D_Store st on st.MemberId = ss.D_Store_MemberId
+group by sku.[Option], st.MemberId, sku.[Class Desc]
+) Mins on  rr.D_Option_MemberId = Mins.[Option] and rr.D_Store_MemberId = sku.Class
+left join FutureGroup_5500_ARCA.dbo.AEX_BPC_Planner bpcp on bpcp.BPC = Mins.[Class]
+
+
+
+Select bp.Planner, sku.[Class Desc] as 'BPC', count(distinct(sku.[Option])) as 'No of Options' 
+from FutureGroup_6600_REP_AppDB.dbo.[M_Standard Stock] ss
+inner join FutureGroup_6600_REP_AppDB.dbo.D_SKU sku on sku.MemberId = ss.D_SKU_MemberId
+inner join FutureGroup_5500_ARCA.dbo.AEX_BPC_Planner bp on bp.BPC = sku.[Class Desc]
+where sku.[Option Desc] not in (
+Select distinct o.Label from FutureGroup_5500_WSSI_AppDB.dbo.[M_PL Option Assign AW M] oa
+inner join FutureGroup_5500_WSSI_AppDB.dbo.[D_Delivery Cycle] dc on dc.MemberId = oa.[D_Delivery Cycle_MemberId] and dc.Label like '%SS-18%'
+inner join FutureGroup_5500_WSSI_AppDB.dbo.D_Option o on o.MemberId = oa.D_Option_MemberId
+where oa.Value <> 0)
+group by bp.Planner, SKU.[Class Desc]
+
+--- Build Range- Count of Options --- ss-18
+Select bp.Planner, o1.[Class Caption] as 'BPC', count(distinct(o.Label)) as 'No of Options' 
+from FutureGroup_6600_REP_AppDB.dbo.[M_Range Plan] rp
+inner join FutureGroup_6600_REP_AppDB.dbo.D_Option o on rp.D_Option_MemberId = o.MemberId
+inner join FutureGroup_5500_WSSI_AppDB.dbo.D_Option o1 on o.Label = o1.Label
+inner join FutureGroup_5500_ARCA.dbo.AEX_BPC_Planner bp on bp.BPC = o1.[Class Caption]
+where o.Label in (
+Select distinct o.Label from FutureGroup_5500_WSSI_AppDB.dbo.[M_PL Option Assign AW M] oa
+inner join FutureGroup_5500_WSSI_AppDB.dbo.[D_Delivery Cycle] dc on dc.MemberId = oa.[D_Delivery Cycle_MemberId] and dc.Label like '%SS-18%'
+inner join FutureGroup_5500_WSSI_AppDB.dbo.D_Option o on o.MemberId = oa.D_Option_MemberId
+where oa.Value = 1 
+)
+group by bp.Planner, o1.[Class Caption]
+
+
+
+--- Min Stock Provided- Count of Options --- ss-18
+Select distinct o1.Label as 'Options'
+from FutureGroup_5500_ARCA.dbo.[AMB_sr Min Stock U] ms
+left join FutureGroup_6600_REP_AppDB.dbo.D_SKU s on s.Label = ms.SKU
+left join FutureGroup_6600_REP_AppDB.dbo.D_Option o on o.MemberId = s.[Option]
+left join FutureGroup_5500_WSSI_AppDB.dbo.D_Option o1 on o1.Label = o.Label
+where o1.Label in (
+Select distinct o.Label from FutureGroup_5500_WSSI_AppDB.dbo.[M_PL Option Assign AW M] oa
+inner join FutureGroup_5500_WSSI_AppDB.dbo.[D_Delivery Cycle] dc on dc.MemberId = oa.[D_Delivery Cycle_MemberId] and dc.Label like '%SS-18%'
+inner join FutureGroup_5500_WSSI_AppDB.dbo.D_Option o on o.MemberId = oa.D_Option_MemberId
+where oa.Value = 1 
+)
+Group by o1.[Class Caption]
+
+Select *
+
+
+group by ms.sku, s.[Option Desc]
+
+
+Select distinct A_CHK_MSG from FutureGroup_5500_ARCA.dbo.[AMB_sr Min Stock U]
+
+
+
+
+
+Select * from FutureGroup_6600_REP_AppDB.dbo.D_Option
+Select * from FutureGroup_6600_REP_AppDB.dbo.D_Class
+
+--- Min Stock count of Options - correct
+Select bp.Planner, sku.[Class Desc] as 'BPC', count(distinct(o.Label)) as 'Options' 
+from FutureGroup_6600_REP_AppDB.dbo.[M_Standard Stock] ss
+inner join FutureGroup_6600_REP_AppDB.dbo.D_SKU sku on sku.MemberId = ss.D_SKU_MemberId
+inner join FutureGroup_6600_REP_AppDB.dbo.D_Option o on o.MemberId = sku.[Option]
+inner join FutureGroup_5500_ARCA.dbo.AEX_BPC_Planner bp on bp.BPC = sku.[Class Desc]
+where o.Label in (
+Select distinct o.Label from FutureGroup_5500_WSSI_AppDB.dbo.[M_PL Option Assign AW M] oa
+inner join FutureGroup_5500_WSSI_AppDB.dbo.[D_Delivery Cycle] dc on dc.MemberId = oa.[D_Delivery Cycle_MemberId] and dc.Label like '%SS-18%'
+inner join FutureGroup_5500_WSSI_AppDB.dbo.D_Option o on o.MemberId = oa.D_Option_MemberId
+where oa.Value = 1 
+)
+group by bp.Planner, SKU.[Class Desc]--, o.Label
+
+
+
+Select distinct o.Label from FutureGroup_5500_WSSI_AppDB.dbo.[M_PL Option Assign AW M] oa
+inner join FutureGroup_5500_WSSI_AppDB.dbo.[D_Delivery Cycle] dc on dc.MemberId = oa.[D_Delivery Cycle_MemberId] and dc.Label like '%SS-18%'
+inner join FutureGroup_5500_WSSI_AppDB.dbo.D_Option o on o.MemberId = oa.D_Option_MemberId
+inner join FutureGroup_5500_WSSI_AppDB.dbo.D_Store s on s.MemberId = oa.D_Store_MemberId
+where oa.Value = 1 --18,31,441
+
+Select * from FutureGroup_5500_ARCA.dbo.[I_Range Plan] where [Range Plan] <> 1 --17,70,713
+
+Select Sum(ia.[Options]) from (
+Select bp.Planner, o.[Class Caption] as 'BPC', o.Label as 'Options'
+from FutureGroup_5500_WSSI_AppDB.dbo.[M_PL Option Assign AW M] oa
+inner join FutureGroup_5500_WSSI_AppDB.dbo.[D_Delivery Cycle] dc on dc.MemberId = oa.[D_Delivery Cycle_MemberId] and dc.Label like '%SS-18%'
+inner join FutureGroup_5500_WSSI_AppDB.dbo.D_Option o on o.MemberId = oa.D_Option_MemberId
+inner join FutureGroup_5500_ARCA.dbo.AEX_BPC_Planner bp on bp.BPC = o.[Class Caption]
+where oa.Value = 1
+Group by bp.Planner, o.[Class Caption], o.Label
+) ia --5969
+
+Select count(1) from  FutureGroup_5500_WSSI_AppDB.dbo.[M_PL Option Assign AW M] oa
+inner join FutureGroup_5500_WSSI_AppDB.dbo.[D_Delivery Cycle] dc on dc.MemberId = oa.[D_Delivery Cycle_MemberId] and dc.Label like '%SS-18%'
+where oa.Value <> 0 --5969
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------ASSORTMENT PLAN vs MINIMUM STOCK QUANTITY - SS-18 ------------------------------------------
+
+Select o1.[Brand Owner] as 'Owner', bpcp.Planner as 'Planner',o1.[Class Caption] as [BPC], o1.Label as 'Option', s.Label as 'Store',
+rr.Value as 'Range', Mins.[Min Stock] as 'Min Stock'
+from FutureGroup_5500_WSSI_AppDB.dbo.[M_PL Option Assign AW M] rr
+inner join FutureGroup_6600_REP_AppDB.dbo.D_Store s on s.MemberId = rr.D_Store_MemberId
+inner join FutureGroup_5500_WSSI_AppDB.dbo.D_Option o1 on o1.MemberId = rr.D_Option_MemberId
+inner join FutureGroup_5500_WSSI_AppDB.dbo.[D_Delivery Cycle] dc on dc.MemberId = rr.[D_Delivery Cycle_MemberId] and dc.Label like '%SS-18%'
+left join (Select sku.MemberId as 'SKU', sku.[Option] as 'Option',st.MemberId as 'Store', sku.[Class Desc] as 'Class', sum(ss.Value)as 'Min Stock'
+ from FutureGroup_6600_REP_AppDB.dbo.[M_Standard Stock] ss
+inner join FutureGroup_6600_REP_AppDB.dbo.D_SKU sku on sku.MemberId = ss.D_SKU_MemberId
+inner join FutureGroup_6600_REP_AppDB.dbo.D_Store st on st.MemberId = ss.D_Store_MemberId
+group by sku.MemberId,sku.[Option], st.MemberId, sku.[Class Desc]
+) Mins on  rr.D_Option_MemberId = Mins.[Option] and rr.D_Store_MemberId = Mins.Store
+left join FutureGroup_5500_ARCA.dbo.AEX_BPC_Planner bpcp on bpcp.BPC = o1.[Class Caption]
+where rr.Value <> 0 and  o1.[Brand Owner] = 'Alok' --'MANVENDRA' --'STRAFFORD', 'SUSHANT', 'Alok', 'NISHITOSH'
+group by o1.[Brand Owner], bpcp.Planner,o1.[Class Caption], o1.Label, s.Label,rr.Value, Mins.[Min Stock]
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+Select * from FutureGroup_5500_ARCA.dbo.[AMB_sr Min Stock U]
+Select distinct SKU from FutureGroup_6600_REP_AppDB_ASA.dbo.[Import_Standard Stock] where Asa_Status <> 100
+Select bp.Planner, bp.BPC, mind.sku, mind.store, mind.[min stock] from FutureGroup_5500_ARCA.dbo.[AMB_sr Min Stock U_temp_table_10] mind
+inner join FutureGroup_6600_REP_AppDB.dbo.D_SKU sku on sku.Label = mind.sku
+inner join FutureGroup_5500_ARCA.dbo.AEX_BPC_Planner bp on bp.BPC = sku.[Class Desc]
+order by bp.Planner, bp.BPC, mind.sku, mind.store, mind.[min stock] asc
+
+Select top 5 *  from FutureGroup_6600_REP_AppDB.dbo.D_SKU
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------ASSORTMENT PLAN vs MINIMUM STOCK QUANTITY - SS-18 ------------------------------------------
+
+Select o1.[Brand Owner] as 'Owner', bpcp.Planner as 'Planner',o1.[Class Caption] as [BPC], o1.Label as 'Option', s.Label as 'Store',
+rr.Value as 'Range', Mins.[Min Stock] as 'Min Stock'
+from FutureGroup_5500_WSSI_AppDB.dbo.[M_PL Option Assign AW M] rr
+inner join FutureGroup_6600_REP_AppDB.dbo.D_Store s on s.MemberId = rr.D_Store_MemberId
+inner join FutureGroup_5500_WSSI_AppDB.dbo.D_Option o1 on o1.MemberId = rr.D_Option_MemberId
+inner join FutureGroup_5500_WSSI_AppDB.dbo.[D_Delivery Cycle] dc on dc.MemberId = rr.[D_Delivery Cycle_MemberId] and dc.Label like '%SS-18%'
+left join (Select sku.MemberId as 'SKU', sku.[Option] as 'Option',st.MemberId as 'Store', sku.[Class Desc] as 'Class', sum(ss.Value)as 'Min Stock'
+ from FutureGroup_6600_REP_AppDB.dbo.[M_Standard Stock] ss
+inner join FutureGroup_6600_REP_AppDB.dbo.D_SKU sku on sku.MemberId = ss.D_SKU_MemberId
+inner join FutureGroup_6600_REP_AppDB.dbo.D_Store st on st.MemberId = ss.D_Store_MemberId
+group by sku.MemberId,sku.[Option], st.MemberId, sku.[Class Desc]
+) Mins on  rr.D_Option_MemberId = Mins.[Option] and rr.D_Store_MemberId = Mins.Store
+left join FutureGroup_5500_ARCA.dbo.AEX_BPC_Planner bpcp on bpcp.BPC = o1.[Class Caption]
+where rr.Value <> 0 and o1.[Brand Owner] = 'Alok' --'MANVENDRA' --'STRAFFORD', 'SUSHANT', 'Alok', 'NISHITOSH'
+group by o1.[Brand Owner], bpcp.Planner,o1.[Class Caption], o1.Label, s.Label,rr.Value, Mins.[Min Stock]
+
+--------------------------------------------------
+
+Select * from FutureGroup_5500_ARCA.dbo.[AMB_sr Min Stock U] where sku like '%1000438421001%'
+
+select sku.[Class Desc], sku.Label from FutureGroup_6600_REP_AppDB.dbo.[M_Standard Stock] ss 
+inner join FutureGroup_6600_REP_AppDB.dbo.D_SKU sku on sku.MemberId = ss.D_SKU_MemberId
+inner join FutureGroup_6600_REP_AppDB.dbo.D_Option
+where SKU.Label in (
+--Select distinct SKU from FutureGroup_5500_ARCA.dbo.[Amrita-MINIMUM STOCK 2BPCS 29TH JAN 2018] or
+select distinct SKU from FutureGroup_5500_ARCA.dbo.[Amy - MINIMUM STOCK 2BPCS 29TH JAN 2018])
+group by sku.[Class Desc], sku.Label
+
+Select * from FutureGroup_5500_ARCA.dbo.ADM_SKU where SKU not in(
+Select * from FutureGroup_5500_ARCA.dbo.[AMB_sr WH Pack Content U])
+
+Select distinct STO from FutureGroup_5500_ARCA.dbo.[Initial Allocation STO Details 3 Feb]
+where STO in 
+('3406020535',
+'3406042935',
+'3406042936',
+'3406042938',
+'3406042939',
+'3406042941',
+'3406042942',
+'3406212312',
+'3406239139',
+'3406272767',
+'3406272768',
+'3406272769',
+'3406272770',
+'3406272771',
+'3406272772',
+'3406272773',
+'3406272774',
+'3406272775',
+'3406272776',
+'3406272777',
+'3406272778',
+'3406272779',
+'3406272780',
+'3406272781',
+'3406272782',
+'3406272783',
+'3406272784',
+'3406272785',
+'3406272786',
+'3406272787',
+'3406272788',
+'3406272789',
+'3406272790',
+'3406272791',
+'3406272792',
+'3406272793',
+'3406272794',
+'3406272795',
+'3406272796',
+'3406272797',
+'3406272798',
+'3406272799',
+'3406275214',
+'3406275215',
+'3406275216',
+'3406275217',
+'3406275218',
+'3406275219',
+'3406275220',
+'3406275221',
+'3406275222',
+'3406275223',
+'3406275224',
+'3406275225',
+'3406275226',
+'3406275227',
+'3406275228',
+'3406275229',
+'3406275230',
+'3406275231',
+'3406275232',
+'3406275233',
+'3406275234',
+'3406275235',
+'3406275236',
+'3406275237',
+'3406275238',
+'3406275239',
+'3406275240',
+'3406275241',
+'3406275242',
+'3406275243',
+'3406275244',
+'3406275245',
+'3406275246',
+'3406275247',
+'3406275248',
+'3406275249',
+'3406275250',
+'3406275251',
+'3406275252',
+'3406275253',
+'3406275254',
+'3406275255',
+'3406275256',
+'3406275257',
+'3406275258',
+'3406275259',
+'3406275260',
+'3406275261',
+'3406275262',
+'3406275263',
+'3406275264',
+'3406275265',
+'3406275266',
+'3406275267',
+'3406275268',
+'3406275269',
+'3406275270',
+'3406275271',
+'3406275272',
+'3406275273',
+'3406275274',
+'3406275275',
+'3406275276',
+'3406275277',
+'3406275278',
+'3406275279',
+'3406275280',
+'3406275281',
+'3406275282',
+'3406275283',
+'3406275284',
+'3406275285',
+'3406275286',
+'3406275287',
+'3406275288',
+'3406275289',
+'3406275290',
+'3406275291',
+'3406275292',
+'3406275293',
+'3406275294',
+'3406275295',
+'3406275900',
+'3406275901',
+'3406275902',
+'3406275903',
+'3406275904',
+'3406275905',
+'3406275906',
+'3406275907',
+'3406275908',
+'3406275909',
+'3406275910',
+'3406275911',
+'3406275912',
+'3406275913',
+'3406275914',
+'3406275915',
+'3406275916',
+'3406275917',
+'3406275918',
+'3406275919',
+'3406275920',
+'3406275921',
+'3406275922',
+'3406275923',
+'3406275924',
+'3406275925',
+'3406275926',
+'3406275927',
+'3406275928',
+'3406275929',
+'3406275930',
+'3406275931',
+'3406275932',
+'3406275933',
+'3406275934',
+'3406275935',
+'3406275936',
+'3406275937',
+'3406275938',
+'3406275939',
+'3406275940',
+'3406275941',
+'3406275942',
+'3406275943',
+'3406275944',
+'3406275945',
+'3406275946',
+'3406275947',
+'3406275948',
+'3406277466',
+'3406277467',
+'3406277468')
